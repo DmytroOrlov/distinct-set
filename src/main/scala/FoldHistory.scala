@@ -1,5 +1,6 @@
 import java.nio.file.FileSystems
 
+import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream._
 import akka.stream.scaladsl._
@@ -8,7 +9,7 @@ import akka.util.ByteString
 
 import scala.collection.{immutable, mutable}
 
-case class Grouped[T](n: Int) extends GraphStage[FlowShape[T, mutable.LinkedHashSet[T]]] {
+case class UniqueGroup[T](n: Int) extends GraphStage[FlowShape[T, mutable.LinkedHashSet[T]]] {
   require(n > 0, "n must be greater than 0")
 
   val in = Inlet[T]("Grouped.in")
@@ -68,14 +69,34 @@ object FoldHistory extends App {
   val fileSink = FileIO.toPath(FileSystems.getDefault.getPath(dirName, fileName + "-"))
 
   val delim = ByteString("\n")
+  val uniqueGroupFlow: Flow[ByteString, mutable.LinkedHashSet[ByteString], NotUsed] = Flow[ByteString].via(UniqueGroup(5000))
   fileSource
     .via(Framing.delimiter(delim, Int.MaxValue))
+    .via(WorkerPool(uniqueGroupFlow, 2))
 //    .grouped(5000).map(_.foldLeft(mutable.LinkedHashSet.empty[ByteString])((ls, l) => ls -= l += l))
-    .via(Grouped(5000))
+//    .via(UniqueGroup(5000))
+    .fold(mutable.LinkedHashSet.empty[ByteString])((acc, set) => set.foldLeft(acc)((acc, s) => acc -= s += s))
     .mapConcat(ls => new immutable.Iterable[ByteString]() {
       def iterator = ls.iterator
     })
     .map(_ ++ delim)
     .toMat(fileSink)(Keep.right).run()
     .onComplete { case _ => system.terminate() }
+}
+
+object WorkerPool {
+  def apply[In, Out](worker: Flow[In, Out, Any], workerCount: Int): Graph[FlowShape[In, Out], NotUsed] = {
+
+    GraphDSL.create() { implicit b =>
+      import GraphDSL.Implicits._
+
+      val balance = b.add(Balance[In](workerCount))
+      val resultsMerge = b.add(Merge[Out](workerCount))
+
+      for (i <- 0 until workerCount)
+        balance.out(i) ~> worker ~> resultsMerge.in(i)
+
+      FlowShape(balance.in, resultsMerge.out)
+    }
+  }
 }
