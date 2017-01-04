@@ -3,7 +3,7 @@ lazy val root = (project in file("."))
     name := "distinct-set",
     version := "1.0",
 
-    scalaVersion := "2.11.8",
+    scalaVersion := "2.12.1",
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-stream" % "2.4.11",
 
