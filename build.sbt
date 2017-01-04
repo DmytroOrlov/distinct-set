@@ -5,7 +5,7 @@ lazy val root = (project in file("."))
 
     scalaVersion := "2.12.1",
     libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-stream" % "2.4.11",
+      "com.typesafe.akka" %% "akka-stream" % "2.4.16",
 
       "org.scalatest" %% "scalatest" % "3.0.0" % "test"
     )
