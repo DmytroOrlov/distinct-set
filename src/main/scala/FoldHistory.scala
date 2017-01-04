@@ -12,8 +12,8 @@ import scala.collection.{immutable, mutable}
 case class UniqueGroup[T](n: Int) extends GraphStage[FlowShape[T, mutable.LinkedHashSet[T]]] {
   require(n > 0, "n must be greater than 0")
 
-  val in = Inlet[T]("Grouped.in")
-  val out = Outlet[mutable.LinkedHashSet[T]]("Grouped.out")
+  val in = Inlet[T]("UniqueGroup.in")
+  val out = Outlet[mutable.LinkedHashSet[T]]("UniqueGroup.out")
   override val shape: FlowShape[T, mutable.LinkedHashSet[T]] = FlowShape(in, out)
 
   override def createLogic(inheritedAttributes: Attributes): GraphStageLogic = new GraphStageLogic(shape) with InHandler with OutHandler {
