@@ -94,7 +94,7 @@ object WorkerPool {
       val resultsMerge = b.add(Merge[Out](workerCount))
 
       for (i <- 0 until workerCount)
-        balance.out(i) ~> worker ~> resultsMerge.in(i)
+        balance.out(i) ~> worker/*.async*/ ~> resultsMerge.in(i)
 
       FlowShape(balance.in, resultsMerge.out)
     }
